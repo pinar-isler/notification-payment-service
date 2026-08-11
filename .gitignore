@@ -1,0 +1,10 @@
+# Gizli bilgileri içeren dosya (GitHub'a YÜKLENMEYECEK)
+.env
+
+# Derlenmiş Go dosyaları ve çıktıları
+/main
+*.exe
+
+# IDE klasörleri
+.vscode/
+.idea/
