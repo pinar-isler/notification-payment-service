@@ -19,6 +19,13 @@ func main() {
 
 	h := handler.NewHandler(mailService, smsService, paymentService)
 
+	// Ana dizine (http://localhost:8080) girildiğinde index.html'i sunar
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		http.ServeFile(w, r, "index.html")
+	})
+
+	// API Endpoint'leri
 	http.HandleFunc("/api/v1/mail/send", h.SendEmailHandler)
 	http.HandleFunc("/api/v1/sms/send", h.SendSMSHandler)
 	http.HandleFunc("/api/v1/payment/process", h.ProcessPaymentHandler)

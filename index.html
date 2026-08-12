@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification & Payment Panel</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            border: 1px solid #e1e1e1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            background: #fafafa;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: #007bff;
+            font-size: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+            font-weight: bold;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>🚀 Test & Yönetim Paneli</h1>
+
+        <!-- Email Form -->
+        <div class="card">
+            <h2>📧 E-Posta Gönder (SendGrid)</h2>
+            <div class="form-group">
+                <label>Alıcı Email:</label>
+                <input type="email" id="emailTo" placeholder="ornek@mail.com">
+            </div>
+            <div class="form-group">
+                <label>Konu:</label>
+                <input type="text" id="emailSubject" placeholder="Test Konusu">
+            </div>
+            <div class="form-group">
+                <label>Mesaj:</label>
+                <textarea id="emailBody" rows="3" placeholder="E-posta içeriği..."></textarea>
+            </div>
+            <button onclick="sendMail()">E-Posta Gönder</button>
+            <div id="emailResult" class="result"></div>
+        </div>
+
+        <!-- SMS Form -->
+        <div class="card">
+            <h2>📱 SMS Gönder (NetGSM)</h2>
+            <div class="form-group">
+                <label>Telefon Numarası:</label>
+                <input type="text" id="smsPhone" placeholder="5xxxxxxxx">
+            </div>
+            <div class="form-group">
+                <label>Mesaj:</label>
+                <textarea id="smsMessage" rows="2" placeholder="SMS mesajı..."></textarea>
+            </div>
+            <button onclick="sendSMS()">SMS Gönder</button>
+            <div id="smsResult" class="result"></div>
+        </div>
+
+        <!-- Payment Form -->
+        <div class="card">
+            <h2>💳 Ödeme Yap (Iyzico Test)</h2>
+            <div class="form-group">
+                <label>Tutar (TL):</label>
+                <input type="number" id="payPrice" value="100">
+            </div>
+            <button style="background-color: #007bff;" onclick="makePayment()">Ödemeyi Başlat</button>
+            <div id="payResult" class="result"></div>
+        </div>
+    </div>
+    <script>
+        async function sendMail() {
+            const resDiv = document.getElementById('emailResult');
+            try {
+                const res = await fetch('/api/v1/mail/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: document.getElementById('emailTo').value,
+                        subject: document.getElementById('emailSubject').value,
+                        body: document.getElementById('emailBody').value
+                    })
+                });
+                const data = await res.json();
+                showResult(resDiv, res.ok, data.message || 'E-posta işlemi tamamlandı!');
+            } catch (e) {
+                showResult(resDiv, false, 'E-posta gönderim hatası!');
+            }
+        }
+
+        async function sendSMS() {
+            const resDiv = document.getElementById('smsResult');
+            try {
+                const res = await fetch('/api/v1/sms/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: document.getElementById('smsPhone').value,
+                        message: document.getElementById('smsMessage').value
+                    })
+                });
+                const data = await res.json();
+                showResult(resDiv, res.ok, data.message || 'SMS işlemi tamamlandı!');
+            } catch (e) {
+                showResult(resDiv, false, 'SMS gönderim hatası!');
+            }
+        }
+
+        async function makePayment() {
+            const resDiv = document.getElementById('payResult');
+            try {
+                const res = await fetch('/api/v1/payment/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ price: parseFloat(document.getElementById('payPrice').value) })
+                });
+                const data = await res.json();
+                showResult(resDiv, res.ok, data.message || 'Ödeme işlemi tamamlandı!');
+            } catch (e) {
+                showResult(resDiv, false, 'Ödeme işlemi hatası!');
+            }
+        }
+
+        function showResult(el, isSuccess, msg) {
+            el.style.display = 'block';
+            el.className = 'result ' + (isSuccess ? 'success' : 'error');
+            el.innerText = msg;
+        }
+    </script>
+
+
+</body>
+
+</html>
