@@ -107,8 +107,11 @@
         <div class="card">
             <h2>📧 E-Posta Gönder (SendGrid)</h2>
             <div class="form-group">
-                <label>Alıcı Email:</label>
-                <input type="email" id="emailTo" placeholder="ornek@mail.com">
+                <label>Alıcı Email (veya Adresleri):</label>
+                <input type="text" id="emailTo" placeholder="ornek1@mail.com, ornek2@mail.com">
+                <small style="color: #666; display: block; margin-top: 4px; font-size: 12px;">
+                    Birden fazla adrese göndermek için aralarına <b>virgül (,)</b> koyabilirsiniz.
+                </small>
             </div>
             <div class="form-group">
                 <label>Konu:</label>
@@ -126,8 +129,11 @@
         <div class="card">
             <h2>📱 SMS Gönder (NetGSM)</h2>
             <div class="form-group">
-                <label>Telefon Numarası:</label>
-                <input type="text" id="smsPhone" placeholder="5xxxxxxxx">
+                <label>Telefon Numarası (veya Numaraları):</label>
+                <input type="text" id="smsPhone" placeholder="5xxxxxxxxx, 5yyyyyyyyy">
+                <small style="color: #666; display: block; margin-top: 4px; font-size: 12px;">
+                    Birden fazla numaraya göndermek için aralarına <b>virgül (,)</b> koyabilirsiniz.
+                </small>
             </div>
             <div class="form-group">
                 <label>Mesaj:</label>
@@ -141,72 +147,116 @@
         <div class="card">
             <h2>💳 Ödeme Yap (Iyzico Test)</h2>
             <div class="form-group">
+                <label>Kart Üzerindeki İsim:</label>
+                <input type="text" id="payCardHolder" placeholder="John Doe" value="John Doe">
+            </div>
+            <div class="form-group">
+                <label>Kart Numarası:</label>
+                <input type="text" id="payCardNumber" placeholder="5528 79xx xxxx xxxx" value="5528790000000001">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Son Kullanma Ay (MM):</label>
+                    <input type="text" id="payExpireMonth" placeholder="12" value="12">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Son Kullanma Yıl (YY):</label>
+                    <input type="text" id="payExpireYear" placeholder="28" value="28">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>CVC:</label>
+                    <input type="text" id="payCvc" placeholder="123" value="123">
+                </div>
+            </div>
+            <div class="form-group">
                 <label>Tutar (TL):</label>
-                <input type="number" id="payPrice" value="100">
+                <input type="text" id="payPrice" value="100">
             </div>
             <button style="background-color: #007bff;" onclick="makePayment()">Ödemeyi Başlat</button>
             <div id="payResult" class="result"></div>
         </div>
-    </div>
-    <script>
-        async function sendMail() {
-            const resDiv = document.getElementById('emailResult');
-            try {
-                const res = await fetch('/api/v1/mail/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        to: document.getElementById('emailTo').value,
-                        subject: document.getElementById('emailSubject').value,
-                        body: document.getElementById('emailBody').value
-                    })
-                });
-                const data = await res.json();
-                showResult(resDiv, res.ok, data.message || 'E-posta işlemi tamamlandı!');
-            } catch (e) {
-                showResult(resDiv, false, 'E-posta gönderim hatası!');
-            }
-        }
+        <script>
+            async function sendMail() {
+                const resDiv = document.getElementById('emailResult');
+                try {
+                    const rawEmails = document.getElementById('emailTo').value;
+                    const emailList = rawEmails.split(',')
+                        .map(email => email.trim())
+                        .filter(email => email !== "");
 
-        async function sendSMS() {
-            const resDiv = document.getElementById('smsResult');
-            try {
-                const res = await fetch('/api/v1/sms/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone: document.getElementById('smsPhone').value,
-                        message: document.getElementById('smsMessage').value
-                    })
-                });
-                const data = await res.json();
-                showResult(resDiv, res.ok, data.message || 'SMS işlemi tamamlandı!');
-            } catch (e) {
-                showResult(resDiv, false, 'SMS gönderim hatası!');
+                    const res = await fetch('/api/v1/mail/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: emailList,
+                            subject: document.getElementById('emailSubject').value,
+                            body: document.getElementById('emailBody').value
+                        })
+                    });
+                    const data = await res.json();
+                    showResult(resDiv, res.ok, data.message || 'E-posta işlemi tamamlandı!');
+                } catch (e) {
+                    showResult(resDiv, false, 'E-posta gönderim hatası!');
+                }
             }
-        }
 
-        async function makePayment() {
-            const resDiv = document.getElementById('payResult');
-            try {
-                const res = await fetch('/api/v1/payment/process', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ price: parseFloat(document.getElementById('payPrice').value) })
-                });
-                const data = await res.json();
-                showResult(resDiv, res.ok, data.message || 'Ödeme işlemi tamamlandı!');
-            } catch (e) {
-                showResult(resDiv, false, 'Ödeme işlemi hatası!');
+            async function sendSMS() {
+                const resDiv = document.getElementById('smsResult');
+                try {
+                    // 1. Input'tan girilen ham metni alıyoruz
+                    const rawPhones = document.getElementById('smsPhone').value;
+
+                    // 2. Virgülle ayırıp, her numaranın başındaki/sonundaki boşlukları temizliyoruz
+                    // .filter ile boş (hatalı) girişleri temizliyoruz
+                    const phoneList = rawPhones.split(',')
+                        .map(phone => phone.trim())
+                        .filter(phone => phone !== "");
+
+                    // 3. Backend'e gönderilecek JSON payload
+                    const res = await fetch('/api/v1/sms/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            phone: phoneList, // Artık bir dizi (array) gönderiyoruz
+                            message: document.getElementById('smsMessage').value
+                        })
+                    });
+
+                    const data = await res.json();
+                    showResult(resDiv, res.ok, data.message || 'SMS işlemi tamamlandı!');
+                } catch (e) {
+                    showResult(resDiv, false, 'SMS gönderim hatası!');
+                }
             }
-        }
 
-        function showResult(el, isSuccess, msg) {
-            el.style.display = 'block';
-            el.className = 'result ' + (isSuccess ? 'success' : 'error');
-            el.innerText = msg;
-        }
-    </script>
+            async function makePayment() {
+                const resDiv = document.getElementById('payResult');
+                try {
+                    const res = await fetch('/api/v1/payment/process', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            card_holder_name: document.getElementById('payCardHolder').value,
+                            card_number: document.getElementById('payCardNumber').value,
+                            expire_month: document.getElementById('payExpireMonth').value,
+                            expire_year: document.getElementById('payExpireYear').value,
+                            cvc: document.getElementById('payCvc').value,
+                            price: document.getElementById('payPrice').value // DTO'da string olduğu için doğrudan string alıyoruz
+                        })
+                    });
+                    const data = await res.json();
+                    showResult(resDiv, res.ok, data.message || 'Ödeme işlemi başarıyla tamamlandı!');
+                } catch (e) {
+                    showResult(resDiv, false, 'Ödeme işlemi hatası!');
+                }
+            }
+
+            function showResult(el, isSuccess, msg) {
+                el.style.display = 'block';
+                el.className = 'result ' + (isSuccess ? 'success' : 'error');
+                el.innerText = msg;
+            }
+        </script>
 
 
 </body>

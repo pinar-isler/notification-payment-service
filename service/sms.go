@@ -17,8 +17,8 @@ func NewSMSService(cfg *config.Config) *SMSService {
 }
 
 type SendSMSDTO struct {
-	Phone   string `json:"phone"`
-	Message string `json:"message"`
+	Phone   []string `json:"phone"`
+	Message string   `json:"message"`
 }
 
 type netgsmRequestPayload struct {
@@ -35,7 +35,7 @@ func (s *SMSService) SendSMS(dto SendSMSDTO) error {
 		Password: s.cfg.NetgsmPassword,
 		Header:   s.cfg.NetgsmHeader,
 		Message:  dto.Message,
-		Gsm:      []string{dto.Phone},
+		Gsm:      dto.Phone,
 	}
 
 	jsonData, err := json.Marshal(payload)
